@@ -1,0 +1,2 @@
+E:\file\IT终端设备数据加密防泄漏系统设计与实现2\it_dlp_system_v2_with_gui\it_dlp_system\new2_fixed\vsto_addin\obj\Debug\ItdlpWordAddin.csproj.AssemblyReference.cache
+E:\file\IT终端设备数据加密防泄漏系统设计与实现2\it_dlp_system_v2_with_gui\it_dlp_system\new2_fixed\vsto_addin\obj\Debug\ItdlpWordAddin.csproj.CoreCompileInputs.cache

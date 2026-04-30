@@ -1,0 +1,45 @@
+{
+  "policy_id": "POLICY-DEFAULT-001",
+  "version": 4,
+  "offline_grace_hours": 72,
+  "controlled_extensions": [
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".ppt",
+    ".pptx",
+    ".dwg",
+    ".pdf",
+    ".txt",
+    ".png",
+    ".jpg",
+    ".csv"
+  ],
+  "process_whitelist": [
+    "winword.exe",
+    "excel.exe",
+    "powerpnt.exe",
+    "acad.exe",
+    "agent_demo.exe",
+    "python.exe",
+    "notepad.exe"
+  ],
+  "clipboard_forbidden_targets": [
+    "wechat.exe",
+    "qq.exe",
+    "telegram.exe",
+    "browser.exe",
+    "chrome.exe",
+    "msedge.exe"
+  ],
+  "usb_mode": "readonly",
+  "network_upload_control": true,
+  "watermark_enabled": true,
+  "print_control": "audit_and_approve",
+  "signature_check": false,
+  "watch_directories": [
+    "C:\\Users\\oopd\\Documents\\受控资料"
+  ],
+  "cached_at": 1777517724
+}

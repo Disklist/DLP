@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>IT-DLP 管理控制中心 v2.1</title>
+<style>
+  :root {
+    --sidebar-w: 250px;
+    --header-h: 54px;
+    --bg: #f0f2f5;
+    --sidebar-bg: #1e293b;
+    --sidebar-hover: #273548;
+    --sidebar-active: #1a3a5c;
+    --primary: #3b82f6;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --card-bg: #fff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text-secondary: #64748b;
+    --text-light: #94a3b8;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6; display: flex; min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w); background: var(--sidebar-bg); color: #e2e8f0;
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+    display: flex; flex-direction: column; overflow-y: auto;
+  }
+  .sidebar-logo {
+    padding: 16px 20px; font-size: 15px; font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    display: flex; align-items: center; gap: 10px; letter-spacing: .5px;
+  }
+  .sidebar-logo .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+  .sidebar-nav { flex: 1; padding: 8px 0; }
+  .nav-section { margin-bottom: 2px; }
+  .nav-section-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px; cursor: pointer; font-size: 13px; font-weight: 600;
+    color: #94a3b8; text-transform: uppercase; letter-spacing: .5px;
+    user-select: none; transition: background .15s;
+  }
+  .nav-section-header:hover { background: var(--sidebar-hover); color: #e2e8f0; }
+  .nav-section-header .arrow { margin-left: auto; font-size: 10px; transition: transform .2s; }
+  .nav-section.open .nav-section-header .arrow { transform: rotate(90deg); }
+  .nav-section-body { display: none; }
+  .nav-section.open .nav-section-body { display: block; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 20px 8px 36px; cursor: pointer; font-size: 13px;
+    color: #cbd5e1; transition: all .15s; position: relative;
+  }
+  .nav-item:hover { background: var(--sidebar-hover); color: #fff; }
+  .nav-item.active { background: var(--sidebar-active); color: #fff; }
+  .nav-item.active::before {
+    content: ''; position: absolute; left: 0; top: 6px; bottom: 6px;
+    width: 3px; background: var(--primary); border-radius: 0 3px 3px 0;
+  }
+  .nav-item .badge-count {
+    margin-left: auto; background: rgba(255,255,255,.12); padding: 1px 7px;
+    border-radius: 10px; font-size: 11px; min-width: 20px; text-align: center;
+  }
+  .nav-item .badge-count.warn { background: var(--danger); color: #fff; }
+
+  .sidebar-footer {
+    padding: 12px 20px; border-top: 1px solid rgba(255,255,255,.06);
+    font-size: 12px; color: #64748b;
+  }
+  .sidebar-footer .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .sidebar-footer .status-dot.on { background: var(--success); }
+
+  /* ── Main Content ── */
+  .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; }
+  .topbar {
+    height: var(--header-h); background: var(--card-bg); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 24px; position: sticky; top: 0; z-index: 50;
+  }
+  .topbar .breadcrumb { font-size: 14px; color: var(--text-secondary); }
+  .topbar .breadcrumb span { color: var(--text); font-weight: 600; }
+  .topbar .refresh { margin-left: auto; cursor: pointer; font-size: 13px; color: var(--primary); user-select: none; }
+  .topbar .refresh:hover { text-decoration: underline; }
+
+  .content { padding: 20px 24px; flex: 1; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── Cards ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .stat-card {
+    background: var(--card-bg); border-radius: var(--radius); padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04); border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 16px;
+  }
+  .stat-card .icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .stat-card .icon.blue { background: #dbeafe; color: #2563eb; }
+  .stat-card .icon.green { background: #dcfce7; color: #16a34a; }
+  .stat-card .icon.orange { background: #fef3c7; color: #d97706; }
+  .stat-card .icon.red { background: #fee2e2; color: #dc2626; }
+  .stat-card .icon.purple { background: #ede9fe; color: #7c3aed; }
+  .stat-card .info .num { font-size: 24px; font-weight: 700; }
+  .stat-card .info .label { font-size: 13px; color: var(--text-secondary); }
+
+  .card {
+    background: var(--card-bg); border-radius: var(--radius);
+    box-shadow: 0 1px 3px rgba(0,0,0,.04); border: 1px solid var(--border);
+    padding: 20px; margin-bottom: 16px;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  }
+  .card-header h3 { font-size: 15px; font-weight: 600; color: var(--text); }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    background: #f8fafc; color: var(--text-secondary); font-weight: 600;
+    padding: 10px 12px; text-align: left; border-bottom: 2px solid var(--border);
+    white-space: nowrap; font-size: 12px; text-transform: uppercase; letter-spacing: .3px;
+  }
+  td {
+    padding: 9px 12px; border-bottom: 1px solid var(--border);
+    max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  tr:hover td { background: #f8fafc; }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px;
+  }
+  .badge-success { background: #dcfce7; color: #166534; }
+  .badge-danger { background: #fee2e2; color: #991b1b; }
+  .badge-warning { background: #fef3c7; color: #92400e; }
+  .badge-info { background: #dbeafe; color: #1e40af; }
+  .badge-neutral { background: #f1f5f9; color: #475569; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 6px 14px; border: none; border-radius: 6px; font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all .15s; white-space: nowrap;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { background: #16a34a; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #dc2626; }
+  .btn-outline { background: #fff; color: var(--text-secondary); border: 1px solid var(--border); }
+  .btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+  .btn-group { display: flex; gap: 6px; }
+
+  /* ── Toolbar ── */
+  .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar select, .toolbar input {
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 12px; background: #fff;
+  }
+  .toolbar select { min-width: 130px; }
+
+  /* ── Policy Editor ── */
+  .policy-editor {
+    width: 100%; min-height: 440px; font-family: "Cascadia Code", Consolas, Monaco, monospace;
+    font-size: 13px; border: 1px solid var(--border); border-radius: 6px;
+    padding: 14px; resize: vertical; line-height: 1.5; tab-size: 2;
+  }
+  .policy-editor:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+
+  /* ── Tabs (level 3) ── */
+  .sub-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid var(--border); }
+  .sub-tab {
+    padding: 8px 16px; cursor: pointer; font-size: 13px; color: var(--text-secondary);
+    border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s;
+  }
+  .sub-tab:hover { color: var(--text); }
+  .sub-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+  /* ── Detail Panel ── */
+  .detail-panel { display: none; }
+  .detail-panel.open { display: block; }
+  .detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .detail-grid .kv { background: #f8fafc; padding: 10px 14px; border-radius: 6px; }
+  .detail-grid .kv .key { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; }
+  .detail-grid .kv .val { font-size: 13px; font-weight: 500; word-break: break-all; }
+
+  .empty { text-align: center; padding: 48px 20px; color: var(--text-light); font-size: 14px; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
+    z-index: 200; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 12px; padding: 24px; width: 480px; max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,.15);
+  }
+  .modal h3 { margin-bottom: 16px; }
+  .modal .form-group { margin-bottom: 12px; }
+  .modal .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .modal .form-group input, .modal .form-group select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;
+  }
+  .modal .btn-group { justify-content: flex-end; margin-top: 16px; }
+
+  @media (max-width: 768px) {
+    .sidebar { width: 60px; }
+    .sidebar-logo { font-size: 0; justify-content: center; padding: 14px; }
+    .nav-section-header { font-size: 0; justify-content: center; padding: 10px; }
+    .nav-item { font-size: 0; justify-content: center; padding: 10px; }
+    .main { margin-left: 60px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════ SIDEBAR ════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="dot"></span> IT-DLP 控制中心
+  </div>
+  <nav class="sidebar-nav">
+    <!-- 仪表盘 -->
+    <div class="nav-section open">
+      <div class="nav-section-header" data-section="dashboard">
+        <span>&#x1F4CA;</span> 仪表盘 <span class="arrow">&#x25B6;</span>
+      </div>
+      <div class="nav-section-body">
+        <div class="nav-item active" data-page="dashboard-overview">系统概览</div>
+      </div>
+    </div>
+
+    <!-- 终端管理 -->
+    <div class="nav-section open">
+      <div class="nav-section-header" data-section="terminals">
+        <span>&#x1F5A5;</span> 终端管理 <span class="arrow">&#x25B6;</span>
+      </div>
+      <div class="nav-section-body">
+        <div class="nav-item" data-page="terminals-list">终端列表</div>
+        <div class="nav-item" data-page="terminals-detail" style="display:none" id="nav-terminal-detail">终端详情</div>
+      </div>
+    </div>
+
+    <!-- 审计日志 -->
+    <div class="nav-section open">
+      <div class="nav-section-header" data-section="logs">
+        <span>&#x1F4CB;</span> 审计日志 <span class="arrow">&#x25B6;</span>
+      </div>
+      <div class="nav-section-body">
+        <div class="nav-item" data-page="logs-all">全部日志</div>
+        <div class="nav-item" data-page="logs-blocked">拦截记录</div>
+        <div class="nav-item" data-page="logs-encrypt">加密操作</div>
+        <div class="nav-item" data-page="logs-decrypt">解密操作</div>
+      </div>
+    </div>
+
+    <!-- 外发审批 -->
+    <div class="nav-section open">
+      <div class="nav-section-header" data-section="exports">
+        <span>&#x1F4E4;</span> 外发审批 <span class="arrow">&#x25B6;</span>
+      </div>
+      <div class="nav-section-body">
+        <div class="nav-item" data-page="exports-pending">
+          待审批 <span class="badge-count warn" id="pending-count">0</span>
+        </div>
+        <div class="nav-item" data-page="exports-all">全部申请</div>
+        <div class="nav-item" data-page="exports-approved">已通过</div>
+        <div class="nav-item" data-page="exports-rejected">已拒绝</div>
+      </div>
+    </div>
+
+    <!-- 密钥管理 -->
+    <div class="nav-section open">
+      <div class="nav-section-header" data-section="keys">
+        <span>&#x1F511;</span> 密钥管理 <span class="arrow">&#x25B6;</span>
+      </div>
+      <div class="nav-section-body">
+        <div class="nav-item" data-page="keys-list">密钥列表</div>
+        <div class="nav-item" data-page="keys-create">创建密钥</div>
+      </div>
+    </div>
+
+    <!-- 策略配置 -->
+    <div class="nav-section open">
+      <div class="nav-section-header" data-section="policy">
+        <span>&#x2699;</span> 策略配置 <span class="arrow">&#x25B6;</span>
+      </div>
+      <div class="nav-section-body">
+        <div class="nav-item" data-page="policy-view">查看策略</div>
+        <div class="nav-item" data-page="policy-edit">编辑策略</div>
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <span class="status-dot on"></span> 服务运行中
+  </div>
+</aside>
+
+<!-- ════════════════ MAIN ════════════════ -->
+<div class="main">
+  <div class="topbar">
+    <div class="breadcrumb">IT-DLP / <span id="breadcrumb-page">系统概览</span></div>
+    <div class="refresh" onclick="refreshCurrentPage()">&#x21BB; 刷新</div>
+  </div>
+  <div class="content">
+
+    <!-- ────────── 仪表盘 > 系统概览 ────────── -->
+    <div class="page active" id="page-dashboard-overview">
+      <div class="stats-grid" id="stats-cards"></div>
+
+      <div class="card">
+        <div class="card-header"><h3>最近操作记录</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>时间</th><th>终端</th><th>用户</th><th>操作</th><th>文件</th><th>结果</th></tr></thead>
+            <tbody id="dashboard-recent-logs"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>待处理审批</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>申请ID</th><th>用户</th><th>文件名</th><th>原因</th><th>时间</th><th>操作</th></tr></thead>
+            <tbody id="dashboard-pending-exports"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────── 终端管理 > 终端列表 ────────── -->
+    <div class="page" id="page-terminals-list">
+      <div class="card">
+        <div class="card-header">
+          <h3>已注册终端</h3>
+          <span style="font-size:12px;color:var(--text-secondary)" id="terminal-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>终端ID</th><th>主机名</th><th>用户</th><th>部门</th><th>状态</th><th>最后在线</th><th>操作</th></tr></thead>
+            <tbody id="terminals-body"><tr><td colspan="8" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────── 终端管理 > 终端详情 ────────── -->
+    <div class="page" id="page-terminals-detail">
+      <div class="card">
+        <div class="card-header">
+          <h3 id="terminal-detail-title">终端详情</h3>
+          <button class="btn btn-outline btn-sm" onclick="navigateTo('terminals-list')">← 返回列表</button>
+        </div>
+        <div class="detail-grid" id="terminal-detail-info"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>监控目录</h3></div>
+        <div style="margin-bottom:12px;display:flex;gap:8px">
+          <input type="text" id="watch-dir-input" placeholder="输入绝对路径，例如 C:\Users\xxx\Documents\受控资料" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+          <button class="btn btn-primary btn-sm" onclick="addWatchDir()">添加</button>
+        </div>
+        <div id="watch-dir-status" style="font-size:12px;margin-bottom:8px"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>目录路径</th><th>添加时间</th><th>操作</th></tr></thead>
+            <tbody id="watch-dirs-body"><tr><td colspan="3" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>该终端操作记录</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>时间</th><th>操作</th><th>文件</th><th>结果</th><th>详情</th></tr></thead>
+            <tbody id="terminal-detail-logs"><tr><td colspan="5" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────── 审计日志 > 全部日志 ────────── -->
+    <div class="page" id="page-logs-all">
+      <div class="card">
+        <div class="card-header"><h3>审计日志</h3></div>
+        <div class="toolbar">
+          <select id="logs-filter-action" onchange="loadLogs()">
+            <option value="">全部操作</option>
+            <option value="file_encrypt">文件加密</option>
+            <option value="file_decrypt">文件解密</option>
+            <option value="file_reencrypt">重新加密</option>
+            <option value="clipboard_control">剪贴板管控</option>
+            <option value="usb_control">USB管控</option>
+            <option value="network_upload_control">网络管控</option>
+            <option value="export_request">外发申请</option>
+            <option value="policy_sync">策略同步</option>
+          </select>
+          <select id="logs-filter-result" onchange="loadLogs()">
+            <option value="">全部结果</option>
+            <option value="success">成功</option>
+            <option value="blocked">已拦截</option>
+            <option value="allowed">已放行</option>
+            <option value="pending">待处理</option>
+          </select>
+          <input type="text" id="logs-filter-terminal" placeholder="终端ID筛选..." onchange="loadLogs()" style="width:200px">
+          <button class="btn btn-outline btn-sm" onclick="loadLogs()">查询</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>时间</th><th>终端</th><th>用户</th><th>操作</th><th>文件</th><th>结果</th><th>详情</th></tr></thead>
+            <tbody id="logs-body"><tr><td colspan="7" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────── 审计日志 > 拦截记录 ────────── -->
+    <div class="page" id="page-logs-blocked">
+      <div class="card">
+        <div class="card-header"><h3>拦截记录</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>时间</th><th>终端</th><th>用户</th><th>操作</th><th>文件</th><th>详情</th></tr></thead>
+            <tbody id="logs-blocked-body"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────── 审计日志 > 加密操作 ────────── -->
+    <div class="page" id="page-logs-encrypt">
+      <div class="card">
+        <div class="card-header"><h3>加密操作记录</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>时间</th><th>终端</th><th>用户</th><th>操作</th><th>文件</th><th>结果</th></tr></thead>
+            <tbody id="logs-encrypt-body"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────── 审计日志 > 解密操作 ────────── -->
+    <div class="page" id="page-logs-decrypt">
+      <div class="card">
+        <div class="card-header"><h3>解密操作记录</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>时间</th><th>终端</th><th>用户</th><th>操作</th><th>文件</th><th>结果</th></tr></thead>
+            <tbody id="logs-decrypt-body"><tr><td colspan="6" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────── 外发审批 > 待审批 ────────── -->
+    <div class="page" id="page-exports-pending">
+      <div class="card">
+        <div class="card-header"><h3>待审批申请</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>申请ID</th><th>终端</th><th>用户</th><th>文件名</th><th>原因</th><th>时间</th><th>操作</th></tr></thead>
+            <tbody id="exports-pending-body"><tr><td colspan="7" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────── 外发审批 > 全部 / 已通过 / 已拒绝 ────────── -->
+    <div class="page" id="page-exports-all">
+      <div class="card">
+        <div class="card-header"><h3>全部外发申请</h3></div>
+        <div class="sub-tabs">
+          <div class="sub-tab active" data-export-filter="all">全部</div>
+          <div class="sub-tab" data-export-filter="pending">待审批</div>
+          <div class="sub-tab" data-export-filter="approved">已通过</div>
+          <div class="sub-tab" data-export-filter="rejected">已拒绝</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>申请ID</th><th>终端</th><th>用户</th><th>文件名</th><th>原因</th><th>状态</th><th>审批人</th><th>备注</th><th>时间</th></tr></thead>
+            <tbody id="exports-all-body"><tr><td colspan="9" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-exports-approved">
+      <div class="card">
+        <div class="card-header"><h3>已通过申请</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>申请ID</th><th>终端</th><th>用户</th><th>文件名</th><th>原因</th><th>审批人</th><th>备注</th><th>时间</th></tr></thead>
+            <tbody id="exports-approved-body"><tr><td colspan="8" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-exports-rejected">
+      <div class="card">
+        <div class="card-header"><h3>已拒绝申请</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>申请ID</th><th>终端</th><th>用户</th><th>文件名</th><th>原因</th><th>审批人</th><th>备注</th><th>时间</th></tr></thead>
+            <tbody id="exports-rejected-body"><tr><td colspan="8" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────── 密钥管理 > 密钥列表 ────────── -->
+    <div class="page" id="page-keys-list">
+      <div class="card">
+        <div class="card-header">
+          <h3>KMS 密钥列表</h3>
+          <button class="btn btn-primary btn-sm" onclick="navigateTo('keys-create')">+ 创建密钥</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>密钥ID</th><th>所有者</th><th>终端</th><th>分级</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+            <tbody id="keys-body"><tr><td colspan="7" class="empty">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────── 密钥管理 > 创建密钥 ────────── -->
+    <div class="page" id="page-keys-create">
+      <div class="card">
+        <div class="card-header"><h3>创建数据密钥</h3></div>
+        <div style="max-width:500px">
+          <div class="form-group" style="margin-bottom:12px">
+            <label>终端ID</label>
+            <input type="text" id="key-create-terminal" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label>所有者ID</label>
+            <input type="text" id="key-create-owner" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+          </div>
+          <div class="form-group" style="margin-bottom:16px">
+            <label>分类等级</label>
+            <select id="key-create-classification" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+              <option value="internal">internal - 内部</option>
+              <option value="confidential">confidential - 机密</option>
+              <option value="secret">secret - 秘密</option>
+              <option value="top_secret">top_secret - 绝密</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="createKey()">生成密钥</button>
+          <span id="key-create-result" style="margin-left:12px;font-size:13px"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────── 策略配置 > 查看策略 ────────── -->
+    <div class="page" id="page-policy-view">
+      <div class="card">
+        <div class="card-header">
+          <h3>当前生效策略</h3>
+          <div class="btn-group">
+            <span style="font-size:13px;color:var(--text-secondary);margin-right:8px" id="policy-version-label"></span>
+            <button class="btn btn-outline btn-sm" onclick="navigateTo('policy-edit')">编辑策略</button>
+          </div>
+        </div>
+        <pre id="policy-view-content" style="background:#f8fafc;padding:16px;border-radius:6px;font-size:13px;overflow:auto;max-height:500px;line-height:1.5">加载中...</pre>
+      </div>
+    </div>
+
+    <!-- ────────── 策略配置 > 编辑策略 ────────── -->
+    <div class="page" id="page-policy-edit">
+      <div class="card">
+        <div class="card-header">
+          <h3>编辑策略</h3>
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="savePolicy()">保存并下发</button>
+            <button class="btn btn-outline btn-sm" onclick="loadPolicyToEditor()">重置</button>
+          </div>
+        </div>
+        <textarea class="policy-editor" id="policy-editor" spellcheck="false"></textarea>
+        <div id="policy-save-status" style="margin-top:8px;font-size:13px;color:var(--text-secondary)"></div>
+      </div>
+    </div>
+
+  </div><!-- .content -->
+</div><!-- .main -->
+
+<!-- ════════════════ MODALS ════════════════ -->
+<div class="modal-overlay" id="modal-approve">
+  <div class="modal">
+    <h3 id="modal-approve-title">审批外发申请</h3>
+    <div class="form-group">
+      <label>备注</label>
+      <input type="text" id="modal-approve-comment" placeholder="输入审批备注...">
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-outline" onclick="closeModal('modal-approve')">取消</button>
+      <button class="btn btn-success" id="modal-approve-btn-ok">通过</button>
+      <button class="btn btn-danger" id="modal-approve-btn-no">拒绝</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+const API = '';
+function ts(v) {
+  if (!v) return '-';
+  const d = new Date(typeof v === 'string' ? parseInt(v) * 1000 : v * 1000);
+  if (isNaN(d.getTime())) return v;
+  return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+function esc(v) { return String(v ?? '-').replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s])); }
+function badge(s) {
+  const m = { approved: 'badge-success', rejected: 'badge-danger', pending: 'badge-warning', success: 'badge-success', blocked: 'badge-danger', allowed: 'badge-success', active: 'badge-success', revoked: 'badge-neutral' };
+  return `<span class="badge ${m[s] || 'badge-neutral'}">${esc(s)}</span>`;
+}
+function truncate(s, n) { s = String(s ?? '-'); return s.length > n ? s.slice(0, n) + '...' : s; }
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+const pageLoaders = {
+  'dashboard-overview': loadDashboard,
+  'terminals-list': loadTerminals,
+  'terminals-detail': () => {},
+  'logs-all': loadLogs,
+  'logs-blocked': () => loadFilteredLogs(null, 'blocked'),
+  'logs-encrypt': () => loadFilteredLogs('file_encrypt', null),
+  'logs-decrypt': () => loadFilteredLogs('file_decrypt', null),
+  'exports-pending': () => loadExportsInto('exports-pending-body', 'pending'),
+  'exports-all': () => loadExportsInto('exports-all-body', null),
+  'exports-approved': () => loadExportsInto('exports-approved-body', 'approved'),
+  'exports-rejected': () => loadExportsInto('exports-rejected-body', 'rejected'),
+  'keys-list': loadKeys,
+  'keys-create': () => {},
+  'policy-view': loadPolicyView,
+  'policy-edit': loadPolicyToEditor,
+};
+
+const pageTitles = {
+  'dashboard-overview': '系统概览',
+  'terminals-list': '终端列表',
+  'terminals-detail': '终端详情',
+  'logs-all': '全部审计日志',
+  'logs-blocked': '拦截记录',
+  'logs-encrypt': '加密操作',
+  'logs-decrypt': '解密操作',
+  'exports-pending': '待审批申请',
+  'exports-all': '全部外发申请',
+  'exports-approved': '已通过申请',
+  'exports-rejected': '已拒绝申请',
+  'keys-list': '密钥列表',
+  'keys-create': '创建密钥',
+  'policy-view': '查看策略',
+  'policy-edit': '编辑策略',
+};
+
+let currentPage = 'dashboard-overview';
+
+function navigateTo(page) {
+  currentPage = page;
+  // Update nav items
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navItem = document.querySelector(`[data-page="${page}"]`);
+  if (navItem) navItem.classList.add('active');
+  // Show page
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const pageEl = document.getElementById('page-' + page);
+  if (pageEl) pageEl.classList.add('active');
+  // Breadcrumb
+  document.getElementById('breadcrumb-page').textContent = pageTitles[page] || page;
+  // Load
+  if (pageLoaders[page]) pageLoaders[page]();
+}
+
+function refreshCurrentPage() { navigateTo(currentPage); }
+
+// Sidebar section collapse
+document.querySelectorAll('.nav-section-header').forEach(header => {
+  header.addEventListener('click', () => {
+    header.parentElement.classList.toggle('open');
+  });
+});
+
+// Nav item clicks
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const page = item.dataset.page;
+    if (page) navigateTo(page);
+  });
+});
+
+// Sub-tabs on exports-all page — always render into exports-all-body
+document.querySelectorAll('.sub-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    tab.parentElement.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const filter = tab.dataset.exportFilter === 'all' ? null : tab.dataset.exportFilter;
+    loadExportsInto('exports-all-body', filter);
+  });
+});
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+async function loadDashboard() {
+  try {
+    const r = await fetch(API + '/api/admin/stats');
+    const stats = await r.json();
+    // Fetch terminals to count online
+    let onlineCount = 0;
+    try {
+      const tr = await fetch(API + '/api/admin/terminals');
+      const terms = await tr.json();
+      onlineCount = terms.filter(t => isOnline(t.last_seen_at)).length;
+    } catch (_) {}
+    const icons = [
+      { icon: '🖥️', cls: 'blue', num: stats.terminals || 0, label: '注册终端' },
+      { icon: '🟢', cls: 'green', num: onlineCount, label: '在线终端' },
+      { icon: '📋', cls: 'purple', num: stats.audit_logs || 0, label: '审计日志' },
+      { icon: '⏳', cls: 'orange', num: stats.pending_exports || 0, label: '待审批' },
+      { icon: '🚫', cls: 'red', num: stats.blocked_events || 0, label: '拦截事件' },
+    ];
+    document.getElementById('stats-cards').innerHTML = icons.map(i =>
+      `<div class="stat-card">
+        <div class="icon ${i.cls}">${i.icon}</div>
+        <div class="info"><div class="num">${i.num}</div><div class="label">${i.label}</div></div>
+      </div>`
+    ).join('');
+  } catch (e) { console.error(e); }
+
+  // Recent logs
+  try {
+    const r = await fetch(API + '/api/audit/logs?limit=10');
+    const logs = await r.json();
+    document.getElementById('dashboard-recent-logs').innerHTML = logs.length
+      ? logs.map(l => `<tr><td>${ts(l.created_at)}</td><td>${esc(l.terminal_id)}</td><td>${esc(l.user_id)}</td><td>${esc(l.action)}</td><td title="${esc(l.file_path)}">${truncate(l.file_path, 30)}</td><td>${badge(l.result)}</td></tr>`).join('')
+      : '<tr><td colspan="6" class="empty">暂无数据</td></tr>';
+  } catch (e) { console.error(e); }
+
+  // Pending exports (dashboard-specific with 6-column layout)
+  try {
+    const r = await fetch(API + '/api/admin/export-requests?status=pending');
+    const data = await r.json();
+    document.getElementById('dashboard-pending-exports').innerHTML = data.length
+      ? data.map(e => `<tr>
+          <td title="${esc(e.request_id)}">${truncate(esc(e.request_id),18)}</td>
+          <td>${esc(e.user_id)}</td><td>${esc(e.file_name)}</td>
+          <td title="${esc(e.reason)}">${truncate(esc(e.reason),24)}</td>
+          <td>${ts(e.created_at)}</td>
+          <td><button class="btn btn-success btn-sm" onclick="approveWithModal('${e.request_id.replace(/'/g, "\\'")}',true)">通过</button>
+          <button class="btn btn-danger btn-sm" onclick="approveWithModal('${e.request_id.replace(/'/g, "\\'")}',false)">拒绝</button></td>
+        </tr>`).join('')
+      : '<tr><td colspan="6" class="empty">暂无待审批申请</td></tr>';
+  } catch (e) { console.error(e); }
+
+  updatePendingBadge();
+}
+
+// ═══════════════════════════════════════════
+// TERMINALS
+function isOnline(lastSeenAt) {
+  if (!lastSeenAt) return false;
+  return (Math.floor(Date.now() / 1000) - lastSeenAt) < 15;
+}
+
+// ═══════════════════════════════════════════
+async function loadTerminals() {
+  try {
+    const r = await fetch(API + '/api/admin/terminals');
+    const data = await r.json();
+    const online = data.filter(t => isOnline(t.last_seen_at)).length;
+    document.getElementById('terminal-count').textContent = '共 ' + data.length + ' 个终端 (' + online + ' 在线)';
+    
+    // 以下部分已修复，使用了干净的模板字符串 (反引号 `)
+    document.getElementById('terminals-body').innerHTML = data.length
+      ? data.map(t => {
+          const on = isOnline(t.last_seen_at);
+          const sth = on ? '<span class="badge badge-success" style="font-size:11px">● 在线</span>'
+                         : '<span class="badge badge-neutral" style="font-size:11px">○ 离线</span>';
+          return `<tr>
+            <td title="${esc(t.terminal_id)}">${truncate(t.terminal_id, 24)}</td>
+            <td>${esc(t.hostname)}</td>
+            <td>${esc(t.user_id)}</td>
+            <td>${esc(t.department)}</td>
+            <td>${sth}</td>
+            <td>${ts(t.last_seen_at)}</td>
+            <td>
+              <button class="btn btn-outline btn-sm" onclick="viewTerminalDetail('${esc(t.terminal_id)}')">详情</button> 
+              <button class="btn btn-danger btn-sm" onclick="deleteTerminal('${t.terminal_id.replace(/'/g, "\\'")}')">删除</button>
+            </td>
+          </tr>`;
+        }).join('')
+      : '<tr><td colspan="8" class="empty">暂无注册终端</td></tr>';
+  } catch (e) { console.error(e); }
+}
+
+async function deleteTerminal(terminalId) {
+  if (!confirm(`确定删除终端 ${terminalId}？\n\n删除将清空该终端的所有数据，` +
+               '并解密其监控目录下的所有加密文件。\n此操作不可撤销！')) return;
+  try {
+    const r = await fetch(API + `/api/admin/terminals/${encodeURIComponent(terminalId)}`, { method: 'DELETE' });
+    const data = await r.json();
+    if (r.ok) {
+      alert(`已删除终端\n解密文件: ${data.decrypted_files} 个\n失败: ${data.failed} 个`);
+      if (currentPage === 'terminals-detail' && _currentTerminalId === terminalId) {
+        navigateTo('terminals-list');
+      } else {
+        loadTerminals();
+      }
+    } else {
+      alert('删除失败: ' + (data.detail || r.statusText));
+    }
+  } catch (e) {
+    alert('网络错误: ' + e.message);
+  }
+}
+
+let _currentTerminalId = '';
+
+async function viewTerminalDetail(terminalId) {
+  _currentTerminalId = terminalId;
+  document.getElementById('nav-terminal-detail').style.display = '';
+  navigateTo('terminals-detail');
+  document.getElementById('terminal-detail-title').textContent = '终端详情: ' + terminalId;
+  try {
+    const r = await fetch(API + '/api/admin/terminals');
+    const terminals = await r.json();
+    const t = terminals.find(t => t.terminal_id === terminalId);
+    if (t) {
+      document.getElementById('terminal-detail-info').innerHTML = [
+        { k: '终端ID', v: t.terminal_id }, { k: '主机名', v: t.hostname },
+        { k: '用户', v: t.user_id }, { k: '部门', v: t.department },
+        { k: '注册时间', v: ts(t.registered_at) }, { k: '最后在线', v: ts(t.last_seen_at) },
+      ].map(f => `<div class="kv"><div class="key">${f.k}</div><div class="val">${f.v}</div></div>`).join('');
+    }
+  } catch (e) { console.error(e); }
+  try {
+    const r = await fetch(API + `/api/audit/logs?terminal_id=${encodeURIComponent(terminalId)}&limit=50`);
+    const logs = await r.json();
+    document.getElementById('terminal-detail-logs').innerHTML = logs.length
+      ? logs.map(l => `<tr><td>${ts(l.created_at)}</td><td>${esc(l.action)}</td><td title="${esc(l.file_path)}">${truncate(l.file_path, 30)}</td><td>${badge(l.result)}</td><td title="${esc(l.detail)}">${truncate(l.detail, 40)}</td></tr>`).join('')
+      : '<tr><td colspan="5" class="empty">暂无操作记录</td></tr>';
+  } catch (e) { console.error(e); }
+  loadWatchDirs(terminalId);
+}
+
+async function loadWatchDirs(terminalId) {
+  const body = document.getElementById('watch-dirs-body');
+  try {
+    const r = await fetch(API + `/api/admin/terminals/${encodeURIComponent(terminalId)}/watch-dirs`);
+    const dirs = await r.json();
+    body.innerHTML = dirs.length
+      ? dirs.map(d => `<tr>
+          <td>${esc(d.directory)}</td>
+          <td>${ts(d.created_at)}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="removeWatchDir(${d.id})">删除</button></td>
+        </tr>`).join('')
+      : '<tr><td colspan="3" class="empty">暂无监控目录（默认监控 ~/Documents/受控资料）</td></tr>';
+  } catch (e) {
+    body.innerHTML = '<tr><td colspan="3" class="empty">加载失败</td></tr>';
+    console.error(e);
+  }
+}
+
+async function addWatchDir() {
+  const input = document.getElementById('watch-dir-input');
+  const status = document.getElementById('watch-dir-status');
+  const dir = input.value.trim();
+  if (!dir) { status.innerHTML = '<span style="color:red">请输入目录路径</span>'; return; }
+  if (!_currentTerminalId) { status.innerHTML = '<span style="color:red">错误: 未选择终端，请从终端列表重新进入</span>'; return; }
+  const url = API + '/api/admin/terminals/' + encodeURIComponent(_currentTerminalId) + '/watch-dirs';
+  status.innerHTML = '<span style="color:#94a3b8">验证中... (' + url + ')</span>';
+  try {
+    const r = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ directory: dir })
+    });
+    const text = await r.text();
+    let detail = text;
+    try { const j = JSON.parse(text); detail = j.detail || text; } catch (_) {}
+    if (!r.ok) {
+      status.innerHTML = '<span style="color:red">添加失败 [' + r.status + ']: ' + esc(detail) + '</span>';
+    } else {
+      status.innerHTML = '<span style="color:#16a34a">已添加监控目录</span>';
+      input.value = '';
+      loadWatchDirs(_currentTerminalId);
+    }
+  } catch (e) {
+    status.innerHTML = '<span style="color:red">网络请求失败: ' + esc(e.message) + '</span>';
+  }
+}
+
+async function removeWatchDir(dirId) {
+  if (!confirm('确定移除此监控目录？')) return;
+  if (!_currentTerminalId) return;
+  const status = document.getElementById('watch-dir-status');
+  try {
+    const r = await fetch(API + `/api/admin/terminals/${encodeURIComponent(_currentTerminalId)}/watch-dirs/${dirId}`, {
+      method: 'DELETE'
+    });
+    if (r.ok) {
+      status.innerHTML = '<span style="color:#16a34a">已移除</span>';
+      loadWatchDirs(_currentTerminalId);
+    } else {
+      const data = await r.json();
+      status.innerHTML = `<span style="color:red">删除失败: ${esc(data.detail || '')}</span>`;
+    }
+  } catch (e) {
+    status.innerHTML = `<span style="color:red">请求失败: ${esc(e.message)}</span>`;
+  }
+}
+
+// ═══════════════════════════════════════════
+// AUDIT LOGS
+// ═══════════════════════════════════════════
+async function loadLogs() {
+  const action = document.getElementById('logs-filter-action')?.value || '';
+  const result = document.getElementById('logs-filter-result')?.value || '';
+  const tid = document.getElementById('logs-filter-terminal')?.value || '';
+  const params = new URLSearchParams({ limit: '200' });
+  if (action) params.set('action', action);
+  if (result) params.set('result', result);
+  if (tid) params.set('terminal_id', tid);
+  try {
+    const r = await fetch(API + '/api/audit/logs?' + params.toString());
+    const data = await r.json();
+    document.getElementById('logs-body').innerHTML = data.length
+      ? data.map(l => `<tr><td>${ts(l.created_at)}</td><td>${esc(l.terminal_id)}</td><td>${esc(l.user_id)}</td><td>${esc(l.action)}</td><td title="${esc(l.file_path)}">${truncate(l.file_path, 25)}</td><td>${badge(l.result)}</td><td title="${esc(l.detail)}">${truncate(l.detail, 50)}</td></tr>`).join('')
+      : '<tr><td colspan="7" class="empty">暂无匹配记录</td></tr>';
+  } catch (e) { console.error(e); }
+}
+
+async function loadFilteredLogs(action, result) {
+  const params = new URLSearchParams({ limit: '200' });
+  if (action) params.set('action', action);
+  if (result) params.set('result', result);
+  let targetBody;
+  if (result === 'blocked') targetBody = 'logs-blocked-body';
+  else if (action === 'file_encrypt') targetBody = 'logs-encrypt-body';
+  else if (action === 'file_decrypt') targetBody = 'logs-decrypt-body';
+  else return;
+  try {
+    const r = await fetch(API + '/api/audit/logs?' + params.toString());
+    const data = await r.json();
+    const cols = result === 'blocked' ? 6 : 6;
+    document.getElementById(targetBody).innerHTML = data.length
+      ? data.map(l => `<tr><td>${ts(l.created_at)}</td><td>${esc(l.terminal_id)}</td><td>${esc(l.user_id)}</td><td>${esc(l.action)}</td><td title="${esc(l.file_path)}">${truncate(l.file_path, 30)}</td><td>${result ? badge(l.result) : badge(l.result)}</td></tr>`).join('')
+      : '<tr><td colspan="' + cols + '" class="empty">暂无匹配记录</td></tr>';
+  } catch (e) { console.error(e); }
+}
+
+// ═══════════════════════════════════════════
+// EXPORT APPROVAL
+// ═══════════════════════════════════════════
+function _renderExportRow(e, mode) {
+  // mode: 'pending'=待审+操作按钮, 'approved'/'rejected'=含审批信息, 'all'=含状态+审批信息
+  const rawId = e.request_id;
+  const id = esc(rawId);
+  const tid = esc(e.terminal_id);
+  const uid = esc(e.user_id);
+  const fn = esc(e.file_name);
+  const reason = esc(e.reason);
+  const stat = badge(e.status);
+  const appr = esc(e.approver_id || '-');
+  const comment = truncate(e.comment || '', 20);
+  const created = ts(e.created_at);
+  const updated = ts(e.updated_at);
+
+  if (mode === 'pending') {
+    return `<tr><td title="${id}">${truncate(id,20)}</td><td>${tid}</td><td>${uid}</td><td>${fn}</td><td title="${reason}">${truncate(reason,30)}</td><td>${created}</td><td><button class="btn btn-success btn-sm" onclick="approveWithModal('${rawId.replace(/'/g, "\\'")}',true)">通过</button> <button class="btn btn-danger btn-sm" onclick="approveWithModal('${rawId.replace(/'/g, "\\'")}',false)">拒绝</button></td></tr>`;
+  }
+  if (mode === 'approved' || mode === 'rejected') {
+    return `<tr><td title="${id}">${truncate(id,20)}</td><td>${tid}</td><td>${uid}</td><td>${fn}</td><td title="${reason}">${truncate(reason,25)}</td><td>${appr}</td><td title="${esc(e.comment||'')}">${comment}</td><td>${updated}</td></tr>`;
+  }
+  // 'all' mode
+  return `<tr><td title="${id}">${truncate(id,20)}</td><td>${tid}</td><td>${uid}</td><td>${fn}</td><td title="${reason}">${truncate(reason,25)}</td><td>${stat}</td><td>${appr}</td><td title="${esc(e.comment||'')}">${comment}</td><td>${created}</td></tr>`;
+}
+
+async function loadExportsInto(targetId, status) {
+  const url = status ? API + '/api/admin/export-requests?status=' + status : API + '/api/admin/export-requests';
+  const mode = status || 'all';
+  try {
+    const r = await fetch(url);
+    const data = await r.json();
+    document.getElementById(targetId).innerHTML = data.length
+      ? data.map(e => _renderExportRow(e, mode)).join('')
+      : '<tr><td colspan="9" class="empty">暂无数据</td></tr>';
+  } catch (e) { console.error(e); }
+  updatePendingBadge();
+}
+
+// Modal-based approval
+let _approveId = null;
+function approveWithModal(id, ok) {
+  _approveId = id;
+  document.getElementById('modal-approve-title').textContent = ok ? '通过外发申请' : '拒绝外发申请';
+  document.getElementById('modal-approve-comment').value = '';
+  document.getElementById('modal-approve-btn-ok').style.display = ok ? '' : 'none';
+  document.getElementById('modal-approve-btn-no').style.display = ok ? 'none' : '';
+  document.getElementById('modal-approve').classList.add('open');
+}
+
+document.getElementById('modal-approve-btn-ok').addEventListener('click', () => {
+  doApprove(_approveId, true, document.getElementById('modal-approve-comment').value);
+  closeModal('modal-approve');
+});
+document.getElementById('modal-approve-btn-no').addEventListener('click', () => {
+  doApprove(_approveId, false, document.getElementById('modal-approve-comment').value);
+  closeModal('modal-approve');
+});
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+// Click overlay background to close
+document.querySelectorAll('.modal-overlay').forEach(ov => {
+  ov.addEventListener('click', (e) => { if (e.target === ov) closeModal(ov.id); });
+});
+
+async function doApprove(id, ok, comment) {
+  await fetch(API + `/api/export/requests/${id}/approve`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ approved: ok, approver_id: 'admin', comment })
+  });
+  refreshCurrentPage();
+}
+
+async function updatePendingBadge() {
+  try {
+    const r = await fetch(API + '/api/admin/export-requests?status=pending');
+    const data = await r.json();
+    document.getElementById('pending-count').textContent = data.length;
+  } catch (e) {}
+}
+
+// ═══════════════════════════════════════════
+// KMS KEYS
+// ═══════════════════════════════════════════
+async function loadKeys() {
+  try {
+    const r = await fetch(API + '/api/admin/keys');
+    let data = await r.json();
+    
+    // 【修改点】：在这里过滤掉状态为 'revoked' 的密钥，不让它们在表格中渲染
+    data = data.filter(k => k.status !== 'revoked');
+
+    document.getElementById('keys-body').innerHTML = data.length
+      ? data.map(k => `<tr>
+          <td title="${esc(k.key_id)}">${truncate(k.key_id, 24)}</td>
+          <td>${esc(k.owner_id)}</td><td>${esc(k.terminal_id)}</td>
+          <td>${esc(k.classification)}</td><td>${badge(k.status)}</td>
+          <td>${ts(k.created_at)}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="revokeKey('${esc(k.key_id)}')">吊销</button></td>
+        </tr>`).join('')
+      : '<tr><td colspan="7" class="empty">暂无活动密钥</td></tr>';
+  } catch (e) { console.error(e); }
+}
+
+async function createKey() {
+  const terminal = document.getElementById('key-create-terminal').value.trim();
+  const owner = document.getElementById('key-create-owner').value.trim();
+  const classification = document.getElementById('key-create-classification').value;
+  const status = document.getElementById('key-create-result');
+  if (!terminal || !owner) { status.textContent = '请填写终端ID和所有者ID'; status.style.color = 'red'; return; }
+  try {
+    const r = await fetch(API + '/api/kms/keys', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ terminal_id: terminal, owner_id: owner, classification })
+    });
+    const data = await r.json();
+    status.textContent = `密钥已创建: ${data.key_id}`;
+    status.style.color = '#16a34a';
+  } catch (e) {
+    status.textContent = '创建失败: ' + e.message;
+    status.style.color = 'red';
+  }
+}
+
+async function revokeKey(keyId) {
+  if (!confirm(`确定吊销密钥 ${keyId}？吊销后该密钥加密的所有文件将无法解密。`)) return;
+  try {
+    await fetch(API + `/api/admin/keys/${keyId}/revoke`, { method: 'POST' });
+    loadKeys();
+  } catch (e) { alert('吊销失败: ' + e.message); }
+}
+
+// ═══════════════════════════════════════════
+// POLICY
+// ═══════════════════════════════════════════
+async function loadPolicyView() {
+  try {
+    const r = await fetch(API + '/api/admin/policy');
+    const data = await r.json();
+    document.getElementById('policy-view-content').textContent = JSON.stringify(data, null, 2);
+    document.getElementById('policy-version-label').textContent = `版本: v${data.version || '-'}`;
+  } catch (e) { console.error(e); }
+}
+
+async function loadPolicyToEditor() {
+  try {
+    const r = await fetch(API + '/api/admin/policy');
+    const data = await r.json();
+    document.getElementById('policy-editor').value = JSON.stringify(data, null, 2);
+    document.getElementById('policy-save-status').textContent = `当前版本: v${data.version || '-'}`;
+  } catch (e) { console.error(e); }
+}
+
+async function savePolicy() {
+  const status = document.getElementById('policy-save-status');
+  try {
+    const policy = JSON.parse(document.getElementById('policy-editor').value);
+    const r = await fetch(API + '/api/admin/policy', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ operator_id: 'admin', policy })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    document.getElementById('policy-editor').value = JSON.stringify(data, null, 2);
+    status.textContent = `已保存并下发，版本: v${data.version}`;
+    status.style.color = '#16a34a';
+  } catch (e) {
+    status.textContent = `保存失败: ${e.message}`;
+    status.style.color = 'red';
+  }
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+loadDashboard();
+updatePendingBadge();
+setInterval(updatePendingBadge, 15000);
+</script>
+</body>
+</html>
